@@ -4,7 +4,7 @@ import { Construct } from 'constructs'
 
 const GITHUB_OWNER = 'monicasofiarestrepo'
 const GITHUB_REPO = 'multi-tenant-product-catalog'
-const GITHUB_SUB = `repo:${GITHUB_OWNER}/${GITHUB_REPO}:ref:refs/heads/main`
+const GITHUB_REPOSITORY = `${GITHUB_OWNER}/${GITHUB_REPO}`
 
 export class GitHubOidcStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -20,7 +20,11 @@ export class GitHubOidcStack extends cdk.Stack {
       assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:sub': GITHUB_SUB,
+          'token.actions.githubusercontent.com:repository': GITHUB_REPOSITORY,
+          'token.actions.githubusercontent.com:ref': 'refs/heads/main',
+        },
+        StringLike: {
+          'token.actions.githubusercontent.com:sub': `repo:${GITHUB_REPOSITORY}:*`,
         },
       }),
       description: 'GitHub Actions deploy for CatalogStack (main only)',
