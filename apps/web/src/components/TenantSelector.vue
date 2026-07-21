@@ -17,7 +17,7 @@ const tenantStore = useTenantStore()
     </label>
     <select
       id="tenant-select"
-      class="focus-visible:outline-brand min-w-48 rounded-md border border-border bg-surface-elevated px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+      class="focus-visible:outline-brand min-w-48 max-w-full rounded-md border border-border bg-surface-elevated py-2 pl-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
       :disabled="loading"
       :value="tenantStore.selectedTenantId ?? ''"
       @change="tenantStore.selectTenant(($event.target as HTMLSelectElement).value)"

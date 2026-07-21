@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import ProductFilters from '@/components/ProductFilters.vue'
 import ProductGrid from '@/components/ProductGrid.vue'
@@ -11,10 +11,14 @@ const productsQuery = useProductsQuery(computed(() => tenantStore.selectedTenant
 
 const allProducts = computed(() => productsQuery.data.value ?? [])
 const { search, category, categories, filtered, reset } = useProductFilters(() => allProducts.value)
+const manageMode = ref(false)
 
 watch(
   () => tenantStore.selectedTenantId,
-  () => reset(),
+  () => {
+    reset()
+    manageMode.value = false
+  },
 )
 </script>
 
@@ -25,13 +29,22 @@ watch(
         <h2 class="text-2xl font-semibold text-ink-deep">Catálogo</h2>
         <p class="text-sm text-muted">Productos por marca (multi-tenant)</p>
       </div>
-      <RouterLink
-        v-if="tenantStore.selectedTenantId"
-        :to="'/products/new'"
-        class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        Agregar producto
-      </RouterLink>
+      <div v-if="tenantStore.selectedTenantId" class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md border border-border bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+          :aria-pressed="manageMode"
+          @click="manageMode = !manageMode"
+        >
+          {{ manageMode ? 'Listo' : 'Administrar' }}
+        </button>
+        <RouterLink
+          to="/products/new"
+          class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          Agregar producto
+        </RouterLink>
+      </div>
     </div>
 
     <p v-if="tenantsQuery.isError.value" class="text-sm text-danger">
@@ -48,9 +61,29 @@ watch(
       :categories="categories"
     />
 
+    <div
+      v-if="
+        tenantStore.selectedTenantId &&
+        !productsQuery.isLoading.value &&
+        !productsQuery.isError.value &&
+        allProducts.length === 0
+      "
+      class="flex min-h-56 flex-col items-center justify-center gap-4 rounded-lg border border-border bg-surface-elevated px-6 py-12 text-center"
+    >
+      <p class="text-base text-muted">Esta marca no cuenta con productos</p>
+      <RouterLink
+        to="/products/new"
+        class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        Agregar productos
+      </RouterLink>
+    </div>
+
     <ProductGrid
+      v-else
       :products="filtered"
       :loading="productsQuery.isLoading.value || tenantsQuery.isLoading.value"
+      :manage-mode="manageMode"
     />
   </section>
 </template>

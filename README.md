@@ -1,81 +1,111 @@
 # Multi-tenant product catalog
 
-Vue 3 + AWS serverless CRUD for the Biky technical test.
+Small full-stack app for the Biky technical test: a product catalog with images, several brands (tenants), and a Vue SPA that talks to a real serverless API on AWS. Nothing is mocked in production — reload the page or open the public URL and you see the same data.
 
-## Structure
+## What’s live
+
+| | URL |
+|--|-----|
+| Frontend | https://daq2o95hh6swe.cloudfront.net |
+| API | https://ynnkakaim7.execute-api.us-east-2.amazonaws.com |
+
+Region: **us-east-2** (this AWS account only allows that region for most services; CloudFront is fine).
+
+## Repo layout
 
 ```
-apps/web              SPA (Vue 3, Pinia, TanStack Query, Tailwind)
-packages/domain       Entities and ports
-packages/application  Use cases + seed
+apps/web              Vue 3 SPA (Pinia, TanStack Query, Tailwind)
+packages/domain       Entities and ports (no AWS types)
+packages/application  Use cases + seed brands
 packages/shared       Zod DTOs
-packages/api          Lambda handler + adapters (+ local dev API)
+packages/api          Lambda handler + Dynamo/S3 adapters
 infra                 AWS CDK (TypeScript)
 ```
 
-## Local development (before AWS deploy)
+## Run it locally
 
-Terminal 1 — API in memory (Dynamo/S3 simulated):
+You need two terminals. The API can run in memory (no AWS required for day-to-day UI work).
 
 ```bash
 npm install
 npm run dev:api
 ```
 
-Terminal 2 — frontend:
+In another terminal:
 
 ```bash
 cp apps/web/.env.example apps/web/.env
-# VITE_API_URL=http://localhost:3000
+# keeps VITE_API_URL=http://localhost:3000
 npm run dev
 ```
 
-Open http://127.0.0.1:5173 — three seeded brands, CRUD, images, filters, cookie.
+Open http://127.0.0.1:5173 — you should get three seeded brands, CRUD, images (local), filters, and a tenant cookie.
 
-## AWS deploy (Biky account)
+## Deploy automático (push a `main`)
 
-Region: **us-east-2** (IAM de la cuenta restringe otras regiones; CloudFront está permitido).
+Cada push a `main` (o un run manual del workflow) dispara GitHub Actions:
 
-1. Auth local (never commit keys), e.g. `aws login` or profile:
+1. Asume un rol IAM vía **OIDC** (no hay access keys en el repo ni en secrets).
+2. Lee `ApiUrl` del stack `CatalogStack` ya desplegado.
+3. Build del SPA con esa URL.
+4. `cdk deploy CatalogStack` en `us-east-2` (Lambda, API, DynamoDB, S3, CloudFront).
+
+Workflow: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+### Una sola vez (bootstrap CI)
+
+Esto solo hace falta la primera vez, o si cambias la cuenta AWS / el rol.
+
+1. Con sesión AWS local (`aws login` o profile), despliega el stack OIDC:
 
    ```bash
    export AWS_REGION=us-east-2 AWS_DEFAULT_REGION=us-east-2
-   aws sts get-caller-identity
-   ```
-
-2. First deploy (placeholder SPA is ok):
-
-   ```bash
-   npm run build
    cd infra
-   npx cdk bootstrap aws://$CDK_DEFAULT_ACCOUNT/us-east-2   # if needed
-   npx cdk deploy CatalogStack --require-approval never
+   npx cdk deploy GitHubOidcStack --require-approval never
    ```
 
-3. Note outputs `ApiUrl`, `WebUrl`, `ImagesCdnUrl`. Rebuild + republish SPA:
+2. Copia el output `GitHubDeployRoleArn`.
 
-   ```bash
-   VITE_API_URL=<ApiUrl> npm run build -w @catalog/web
-   cd infra && npx cdk deploy CatalogStack --require-approval never
-   ```
+3. En el repo de GitHub → **Settings → Secrets and variables → Actions → Variables**, crea:
 
-## Technical decisions
+   | Variable | Valor |
+   |----------|--------|
+   | `AWS_ACCOUNT_ID` | `266176113590` |
+   | `AWS_DEPLOY_ROLE_ARN` | el ARN del paso anterior |
 
-| Topic | Choice |
-|--------|--------|
-| Multi-tenant | DynamoDB single-table `PK=TENANT#id`, `SK=META` / `PRODUCT#id` |
-| Images | Presigned PUT → private S3; GET via CloudFront OAC |
-| Cookie | `catalog_tenant`, `SameSite=Lax`, `Secure` in prod; not HttpOnly (SPA reads preference) |
-| Extras | Pinia + TanStack Query, Tailwind tokens, client filters, Vitest, basic a11y |
+4. El siguiente push a `main` (o **Actions → Deploy to AWS → Run workflow**) debería desplegar solo.
 
-## Scale (100k products)
+El trust del rol está limitado a  
+`repo:monicasofiarestrepo/multi-tenant-product-catalog:ref:refs/heads/main`.
 
-Client-side filters → API query params; GSI on category; cursor pagination; optional OpenSearch.
+### Deploy manual (sin CI)
+
+Si aún no tienes Actions configurado:
+
+```bash
+export AWS_REGION=us-east-2 AWS_DEFAULT_REGION=us-east-2
+npm run build
+cd infra
+npx cdk deploy CatalogStack --require-approval never
+
+# luego, con la ApiUrl del output:
+VITE_API_URL=<ApiUrl> npm run build -w @catalog/web
+cd infra && npx cdk deploy CatalogStack --require-approval never
+```
+
+Nunca subas credenciales AWS al repo. Usa perfil local / `aws login` / OIDC en CI.
+
+## Decisiones rápidas
+
+Multi-tenant va en una sola tabla DynamoDB (`PK=TENANT#id`, productos bajo el mismo tenant). Las imágenes se suben con URL firmada a un bucket privado y se sirven por CloudFront (OAC). La cookie `catalog_tenant` recuerda la marca (`SameSite=Lax`, `Secure` en prod; no es HttpOnly porque el SPA la lee).
+
+Extras: Pinia + TanStack Query, filtros en cliente, Vitest, a11y básica.
+
+Si el catálogo creciera a ~100k productos: filtros en API, GSI por categoría, paginación por cursor, y quizá OpenSearch.
 
 ## Scripts
 
-- `npm run dev` / `npm run dev:api` — local UI + API
-- `npm run build` — production SPA
+- `npm run dev` / `npm run dev:api` — UI + API local
+- `npm run build` — SPA de producción
 - `npm run test` — Vitest (web)
-- `npm run cdk -- synth` — from infra workspace
-- `npm run verify:publish` — ensure no Cursor/AI paths are tracked before push
+- `npm run cdk -- synth` — desde el workspace infra

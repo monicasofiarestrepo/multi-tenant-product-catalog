@@ -1,0 +1,58 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-2
+      CDK_DEFAULT_ACCOUNT: ${{ vars.AWS_ACCOUNT_ID }}
+      CDK_DEFAULT_REGION: us-east-2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve API URL and build SPA
+        run: |
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name CatalogStack \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+            --output text)
+          if [ -z "$API_URL" ] || [ "$API_URL" = "None" ]; then
+            echo "CatalogStack ApiUrl not found. Deploy CatalogStack once locally first."
+            exit 1
+          fi
+          echo "Using VITE_API_URL=$API_URL"
+          VITE_API_URL="$API_URL" npm run build -w @catalog/web
+
+      - name: CDK deploy CatalogStack
+        working-directory: infra
+        run: npx cdk deploy CatalogStack --require-approval never
