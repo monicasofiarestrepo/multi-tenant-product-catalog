@@ -15,23 +15,25 @@ export class GitHubOidcStack extends cdk.Stack {
       clientIds: ['sts.amazonaws.com'],
     })
 
+    // AWS-recommended trust: aud + repo-scoped sub (no ref/repository — missing claims deny assume)
     const deployRole = new iam.Role(this, 'GitHubCatalogDeployRole', {
       roleName: 'GitHubCatalogDeployRole',
-      assumedBy: new iam.WebIdentityPrincipal(provider.openIdConnectProviderArn, {
-        StringEquals: {
-          'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          'token.actions.githubusercontent.com:repository': GITHUB_REPOSITORY,
-          'token.actions.githubusercontent.com:ref': 'refs/heads/main',
+      assumedBy: new iam.FederatedPrincipal(
+        provider.openIdConnectProviderArn,
+        {
+          StringEquals: {
+            'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+          },
+          StringLike: {
+            'token.actions.githubusercontent.com:sub': `repo:${GITHUB_REPOSITORY}:*`,
+          },
         },
-        StringLike: {
-          'token.actions.githubusercontent.com:sub': `repo:${GITHUB_REPOSITORY}:*`,
-        },
-      }),
-      description: 'GitHub Actions deploy for CatalogStack (main only)',
+        'sts:AssumeRoleWithWebIdentity',
+      ),
+      description: 'GitHub Actions deploy for CatalogStack',
       maxSessionDuration: cdk.Duration.hours(1),
     })
 
-    // CDK deployer needs broad write in this test account/region
     deployRole.addToPolicy(
       new iam.PolicyStatement({
         sid: 'CdkDeployUsEast2',
@@ -46,7 +48,6 @@ export class GitHubOidcStack extends cdk.Stack {
       }),
     )
 
-    // IAM + CloudFront are global / not region-scoped the same way
     deployRole.addToPolicy(
       new iam.PolicyStatement({
         sid: 'GlobalServicesForCdk',
