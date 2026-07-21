@@ -1,0 +1,84 @@
+/* Keybe-inspired tokens — single source for UI */
+:root {
+  /* Brand */
+  --color-ink: #082c40;
+  --color-ink-deep: #00325c;
+  --color-ink-near: #000201;
+  --color-brand: #00d084;
+  --color-brand-bright: #49ff9b;
+  --color-brand-soft: #40e48a;
+  --color-surface: #f2f4f7;
+  --color-surface-elevated: #ffffff;
+  --color-muted: #83867a;
+  --color-danger: #cf2e2e;
+  --color-warning: #fcb900;
+  --color-border: #d5dbe3;
+
+  /* Type */
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  /* Space (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radius / elevation */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --shadow-md: 0 8px 24px color-mix(in srgb, var(--color-ink) 10%, transparent);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-med: 280ms;
+}
+
+@theme {
+  --font-sans: var(--font-sans);
+  --color-ink: var(--color-ink);
+  --color-ink-deep: var(--color-ink-deep);
+  --color-brand: var(--color-brand);
+  --color-brand-bright: var(--color-brand-bright);
+  --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-muted: var(--color-muted);
+  --color-danger: var(--color-danger);
+  --color-border: var(--color-border);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--color-brand) 18%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--color-ink-deep) 12%, transparent), transparent 55%),
+    var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+}

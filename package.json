@@ -1,0 +1,24 @@
+{
+  "name": "multi-tenant-product-catalog",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Multi-tenant product catalog — Vue 3 + AWS serverless (CDK)",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "infra"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @catalog/web",
+    "dev:api": "npm run dev -w @catalog/api",
+    "build": "npm run build -w @catalog/web",
+    "test": "npm run test -w @catalog/web",
+    "lint": "npm run lint -w @catalog/web --if-present",
+    "cdk": "npm run cdk -w @catalog/infra --if-present",
+    "verify:publish": "bash scripts/verify-no-ai-traces.sh"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "npm@11.6.0"
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+MSG_FILE="${1:?}"
+if grep -qiE 'Made-with:\s*Cursor|Co-authored-by:.*Cursor' "$MSG_FILE"; then
+  echo "Commit message must not include Cursor attribution (Made-with / Co-authored-by)."
+  exit 1
+fi

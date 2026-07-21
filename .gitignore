@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.output/
+coverage/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials
+.aws-sam/
+
+# CDK
+cdk.out/
+cdk.context.json
+infra/cdk-outputs.json
+
+# IDE / OS
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Test / cache
+.vite/
+.turbo/
+.cache/
+
+# Cursor / AI agent artifacts (keep local; do not push)
+.cursor/
+.cursorignore
+.cursorrules
+AGENTS.md
+openspec/
+.aider*
+.aider.conf.yml
+.claude/
+specstory/
+.agent/
+**/agent-transcripts/
+.github/copilot-instructions.md
+scripts/verify-no-ai-traces.sh
