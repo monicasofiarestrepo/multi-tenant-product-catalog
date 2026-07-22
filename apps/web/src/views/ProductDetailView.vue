@@ -38,11 +38,7 @@ const tenantId = computed(() => {
 const productQuery = useProductQuery(
   tenantId,
   productId,
-  computed(() => {
-    const list = productsQuery.data.value
-    if (!list) return false
-    return list.some((p) => p.id === productId.value)
-  }),
+  computed(() => Boolean(tenantId.value) && Boolean(productId.value)),
 )
 
 const confirmOpen = ref(false)
@@ -69,25 +65,35 @@ const catalogEmpty = computed(
     Boolean(tenantId.value) &&
     !productsQuery.isLoading.value &&
     !productsQuery.isError.value &&
-    siblingProducts.value.length === 0,
+    siblingProducts.value.length === 0 &&
+    !productQuery.data.value,
 )
 
 const productMissing = computed(
   () =>
     Boolean(tenantId.value) &&
-    !productsQuery.isLoading.value &&
-    siblingProducts.value.length > 0 &&
-    currentIndex.value === -1,
+    Boolean(productId.value) &&
+    !productQuery.isLoading.value &&
+    !productQuery.isFetching.value &&
+    (productQuery.isError.value ||
+      (!productQuery.data.value &&
+        !productsQuery.isLoading.value &&
+        !productsQuery.isFetching.value &&
+        siblingProducts.value.length > 0 &&
+        currentIndex.value === -1)),
 )
 
 watch(
-  [productMissing, siblingProducts],
-  ([missing, list]) => {
-    if (missing && list[0]) {
-      router.replace(`/products/${list[0].id}`)
+  productMissing,
+  (missing) => {
+    if (!missing) return
+    const fallback = siblingProducts.value[0]
+    if (fallback && fallback.id !== productId.value) {
+      router.replace(`/products/${fallback.id}`)
+    } else if (!fallback) {
+      router.replace('/')
     }
   },
-  { immediate: true },
 )
 
 const allProductsQuery = useQuery({
@@ -147,13 +153,8 @@ function onConfirmDelete() {
 
 const detailLoading = computed(
   () =>
-    productsQuery.isLoading.value ||
-    productQuery.isLoading.value ||
-    (!productsQuery.isLoading.value &&
-      !productsQuery.isError.value &&
-      currentIndex.value >= 0 &&
-      !productQuery.data.value &&
-      !productQuery.isError.value),
+    !productQuery.data.value &&
+    (productQuery.isLoading.value || productQuery.isFetching.value),
 )
 </script>
 

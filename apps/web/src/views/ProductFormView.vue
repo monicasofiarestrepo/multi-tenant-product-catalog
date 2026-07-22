@@ -246,10 +246,11 @@ const saveMutation = useMutation({
       imageUrls: [publicUrl],
     })
   },
-  onSuccess: (p) => {
+  onSuccess: async (p) => {
+    queryClient.setQueryData(['products', tenantId.value, p.id], p)
     invalidateProducts(queryClient, tenantId.value)
     toast(isEdit.value ? 'Producto actualizado' : 'Producto creado')
-    router.push(`/products/${p.id}`)
+    await router.push({ name: 'product-detail', params: { id: p.id } })
   },
   onError: (e: Error) => {
     if (e.message === 'validation') {
