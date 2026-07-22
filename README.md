@@ -102,28 +102,135 @@ No subas credenciales al repositorio: perfil local, `aws login` u OIDC en CI.
 
 ## Decisiones técnicas
 
-Lo que sigue resume las decisiones que más pesan en la evaluación (multi-tenant, imágenes, cookies, serverless e IaC). 
-
 **Aislamiento multi-tenant (DynamoDB, una tabla)**  
 Modelé todo en una sola tabla con `PK = TENANT#{tenantId}` y `SK` de metadata o `PRODUCT#{id}`. Lo hice así porque cada listado o lectura parte de la partición del tenant: el aislamiento no depende de un `WHERE` que alguien pueda olvidar en un endpoint nuevo, y actualizar o borrar exige `PK` + `SK`, no solo un id de producto. Descarté una tabla por marca (mucho operativo para una prueba) y filtrar tenant solo con GSI (más fácil equivocarse). No metí Cognito: el enunciado pide demostrar aislamiento de datos, no autenticación; hoy cualquiera puede llamar la API con un `tenantId` válido.
+
+```mermaid
+flowchart TB
+  subgraph tabla["Una tabla DynamoDB"]
+    T1["PK: TENANT#bmw · SK: META<br/>nombre, slug…"]
+    T2["PK: TENANT#bmw · SK: PRODUCT#p1<br/>nombre, precio, imageUrls[]"]
+    T3["PK: TENANT#bmw · SK: PRODUCT#p2"]
+    T4["PK: TENANT#keybe · SK: META"]
+    T5["PK: TENANT#keybe · SK: PRODUCT#p9"]
+  end
+  Q["Query PK = TENANT#bmw"] --> T1
+  Q --> T2
+  Q --> T3
+  Q -.->|no cruza partición| T4
+```
 
 **Capas (dominio → casos de uso → adaptadores)**  
 Separé entidades y puertos en `domain`, la lógica en `application` y Dynamo/S3/Lambda en `api`, con Zod compartido. La Lambda solo traduce HTTP → caso de uso → JSON. Así el mismo CRUD corre en local con un store en memoria y en AWS sin duplicar reglas de negocio, y el frontend nunca toca el SDK de AWS.
 
+```mermaid
+flowchart LR
+  WEB["apps/web<br/>Vue SPA"]
+  SH["@catalog/shared<br/>Zod / DTOs"]
+  API["packages/api<br/>Lambda + adapters"]
+  APP["application<br/>casos de uso"]
+  DOM["domain<br/>entidades + ports"]
+  AWS["DynamoDB · S3"]
+  MEM["store en memoria<br/>(dev local)"]
+
+  WEB --> SH
+  API --> APP --> DOM
+  API --> SH
+  WEB --> SH
+  API --> AWS
+  API -.-> MEM
+```
+
 **API REST**  
 Puse el tenant en la ruta (`/tenants/{tenantId}/products/...`) para que el alcance sea explícito en cada request y la API sea predecible sin documentación extra. Valido el body en backend con Zod, devuelvo errores con `code` y `message`, y CORS limitado al origen del SPA en CloudFront — el brief pide criterio propio y CORS bien resuelto.
+
+```mermaid
+sequenceDiagram
+  participant SPA as SPA CloudFront
+  participant GW as API Gateway
+  participant L as Lambda
+  participant D as DynamoDB
+
+  SPA->>GW: GET /tenants/{tenantId}/products
+  Note over SPA,GW: tenantId en path = alcance explícito
+  GW->>L: evento HTTP
+  L->>L: Zod + caso de uso
+  L->>D: Query PK = TENANT#{tenantId}
+  D-->>L: ítems del tenant
+  L-->>SPA: JSON 200 + CORS origen SPA
+```
 
 **Imágenes (requisito abierto del enunciado)**  
 El brief deja libertad en cómo persistir y servir imágenes en serverless; esta fue mi respuesta. No guardo bytes en DynamoDB (límites de ítem, coste y mala idea para archivos). El flujo es: crear el producto → `POST .../image-upload` obtiene un PUT firmado a S3 → el navegador sube directo al bucket **privado** → `PATCH` con la URL pública. Las descargas pasan por **CloudFront con OAC**, no por un bucket público. En DynamoDB solo quedan URLs en `imageUrls[]`. Subir desde el cliente evita pasar el archivo por Lambda (timeouts y payload). Limito a JPEG/PNG/WebP y ~5 MB en el presign. La UI exige al menos una imagen antes de dar por cerrado el alta, como pide la prueba.
 
+```mermaid
+sequenceDiagram
+  participant U as Navegador
+  participant API as Lambda API
+  participant S3 as S3 privado
+  participant CF as CloudFront OAC
+  participant D as DynamoDB
+
+  U->>API: POST producto (metadata)
+  API->>D: guardar producto
+  U->>API: POST .../image-upload
+  API-->>U: uploadUrl + publicUrl
+  U->>S3: PUT archivo (presign)
+  U->>API: PATCH imageUrls[]
+  API->>D: actualizar URLs
+  U->>CF: GET imagen
+  CF->>S3: lectura OAC
+  CF-->>U: JPEG/PNG/WebP
+```
+
 **Cookie para recordar la marca**  
 El frontend debe usar cookies con buenas prácticas para recordar la marca seleccionada. Uso `catalog_tenant` con el `tenantId`, `Path=/`, 30 días, `SameSite=Lax` y `Secure` en producción (`Secure` desactivado en localhost). No la marqué `HttpOnly` porque el SPA necesita leerla al cargar para restaurar Pinia y la clave de TanStack Query `['products', tenantId]` sin un round-trip extra; es el trade-off habitual en SPAs sin sesión de servidor. La preferencia no es secreto de seguridad — solo UX.
 
+```mermaid
+flowchart LR
+  A["Usuario elige marca"] --> B["Pinia selectedTenantId"]
+  B --> C["Cookie catalog_tenant"]
+  B --> D["Query key products + tenantId"]
+  E["Recarga / nueva pestaña"] --> C
+  C --> B
+  B --> F["TanStack Query pide catálogo del tenant"]
+```
+
 **Frontend y estado**  
-Vue 3 + TypeScript, URL de API por `VITE_API_URL`. Pinia para la marca activa; TanStack Query para datos remotos y para que la lista se refresque sola tras crear/editar/borrar. Los filtros por nombre y categoría los resolví en cliente: con pocas decenas de productos por marca cumple el extra del brief sin añadir GSI ni paginación todavía (la evolución a escala la dejo en “Qué mejoraría”). Tailwind con tokens en `tokens.css` para no dispersar estilos.
+Vue 3 + TypeScript, URL de API por `VITE_API_URL`. Pinia para la marca activa; TanStack Query para datos remotos y para que la lista se refresque sola tras crear/editar/borrar. Los filtros por nombre y categoría y la paginación (30 por página) los resolví en cliente: con el volumen actual del demo cumple el extra del brief sin GSI ni búsqueda server-side (la evolución a escala la dejo en “Qué mejoraría”). Tailwind con tokens en `tokens.css` para no dispersar estilos.
+
+```mermaid
+flowchart TB
+  TS["TenantSelector"] --> PIN["Pinia tenant"]
+  PIN --> Q["useProductsQuery(tenantId)"]
+  Q --> API["REST API"]
+  FIL["filtros nombre / categoría"] --> GRID["ProductGrid"]
+  Q --> FIL
+  PAGE["paginación 30/página"] --> GRID
+  FIL --> PAGE
+  MUT["create / update / delete"] --> INV["invalidateQueries"]
+  INV --> Q
+```
 
 **Infra serverless (CDK)**  
-Todo el aprovisionamiento va en CDK TypeScript, como exige la prueba — nada crítico hecho a mano en consola. Un solo `CatalogStack` (HTTP API + Lambda, Dynamo on-demand, S3 imágenes + hosting SPA, CloudFront) me alcanza para el tamaño del ejercicio; al crecer separaría datos, API y web. El seed de tres marcas en deploy permite demostrar el cambio de catálogo sin hardcodear productos en el frontend.
+Todo el aprovisionamiento va en CDK TypeScript, como exige la prueba — nada crítico hecho a mano en consola. Un solo `CatalogStack` (HTTP API + Lambda, Dynamo on-demand, S3 imágenes + hosting SPA, CloudFront) me alcanza para el tamaño del ejercicio; al crecer separaría datos, API y web. El seed de marcas en deploy permite demostrar el cambio de catálogo sin hardcodear productos en el frontend.
+
+```mermaid
+flowchart TB
+  U["Usuario"] --> CFWEB["CloudFront · SPA"]
+  U --> CFIMG["CloudFront · imágenes"]
+  CFWEB --> S3WEB["S3 WebBucket"]
+  CFIMG --> S3IMG["S3 ImagesBucket"]
+  U --> APIGW["HTTP API Gateway"]
+  APIGW --> L["Lambda Node"]
+  L --> DDB["DynamoDB CatalogTable"]
+  L --> S3IMG
+  CDK["CatalogStack CDK"] -.-> CFWEB
+  CDK -.-> APIGW
+  CDK -.-> DDB
+  CDK -.-> S3WEB
+  CDK -.-> S3IMG
+```
 
 ---
 
