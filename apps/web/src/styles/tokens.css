@@ -17,7 +17,6 @@
   --color-toggle-track: #ffffff;
   --color-toggle-knob: #00325c;
   --color-toggle-icon-muted: #9aa3ab;
-  --select-chevron: %23082C40;
 
   /* Keybe CTA-style wash (green → cyan) */
   --gradient-brand-cta: linear-gradient(
@@ -90,7 +89,6 @@ html.dark {
   --color-toggle-track: #1a2d3c;
   --color-toggle-knob: #00d084;
   --color-toggle-icon-muted: #6b7a86;
-  --select-chevron: %23E6EEF4;
   --shadow-sm: 0 1px 2px color-mix(in srgb, #000 35%, transparent);
   --shadow-md: 0 10px 28px color-mix(in srgb, #000 45%, transparent);
   --body-glow-a: color-mix(in srgb, var(--color-brand) 14%, transparent);
@@ -139,29 +137,79 @@ body {
     color var(--duration-med) var(--ease-out);
 }
 
-/* Native select chevron — avoid clipped system arrow */
-select {
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Form controls — native select + text inputs */
+.input-control,
+.select-control {
+  display: block;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--color-ink);
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.input-control::placeholder {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.input-control:hover:not(:disabled),
+.select-control:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand) 40%, var(--color-border));
+}
+
+.input-control:focus-visible,
+.select-control:focus-visible {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px color-mix(in srgb, var(--color-brand) 30%, transparent);
+}
+
+.select-control {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='var(--select-chevron)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1rem 1rem;
   padding-right: 2.5rem;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  background-size: 1.125rem 1.125rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23082C40' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
-/* SVG data URLs can't use CSS vars — encode per theme */
-:root select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23082C40' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+html.dark .select-control {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6EEF4' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
-html.dark select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6EEF4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+.select-control:focus-visible {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300D084' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
-select:disabled {
-  opacity: 0.6;
+html.dark .select-control:focus-visible {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2349FF9B' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.select-control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* Footer wash — CTA gradient + dim overlay */

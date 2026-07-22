@@ -16,7 +16,7 @@ defineProps<{
         v-model="search"
         type="search"
         placeholder="Nombre del producto"
-        class="focus-visible:outline-brand rounded-md border border-border bg-surface-elevated px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+        class="input-control"
       />
     </div>
     <div class="flex flex-col gap-1 sm:w-48">
@@ -24,7 +24,7 @@ defineProps<{
       <select
         id="product-category"
         v-model="category"
-        class="focus-visible:outline-brand w-full rounded-md border border-border bg-surface-elevated py-2 pl-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+        class="select-control"
       >
         <option value="">Todas</option>
         <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
