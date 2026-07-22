@@ -4,6 +4,7 @@ import { RouterLink, RouterView } from 'vue-router'
 import AddBrandDialog from '@/components/AddBrandDialog.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
 import TenantSelector from '@/components/TenantSelector.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import { useCatalogSync } from '@/composables/useCatalogQueries'
 
@@ -14,14 +15,14 @@ const addBrandOpen = ref(false)
 <template>
   <div class="flex min-h-screen flex-col">
     <header class="border-b border-border bg-surface-elevated/80 backdrop-blur-md">
-      <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
+      <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-widest text-brand">Catálogo</p>
           <RouterLink to="/" class="text-xl font-bold text-ink focus-visible:outline-brand focus-visible:outline-2">
             Multi-tenant Product Catalog
           </RouterLink>
         </div>
-        <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-wrap items-end gap-3 sm:items-center">
           <TenantSelector
             :tenants="tenantsQuery.data.value ?? []"
             :loading="tenantsQuery.isLoading.value"
@@ -33,6 +34,7 @@ const addBrandOpen = ref(false)
           >
             + Nueva marca
           </button>
+          <ThemeToggle class="sm:ml-1" />
         </div>
       </div>
     </header>

@@ -14,6 +14,22 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem('catalog_theme')
+          const dark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            document.documentElement.dataset.theme = 'dark'
+            document.documentElement.style.colorScheme = 'dark'
+          }
+        } catch (_) {}
+      })()
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

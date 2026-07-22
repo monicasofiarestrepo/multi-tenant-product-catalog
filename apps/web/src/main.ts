@@ -3,10 +3,13 @@ import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from './App.vue'
 import { router } from './router'
+import { useThemeStore } from './stores/theme'
 import './styles/main.css'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
+useThemeStore(pinia)
 app.use(router)
 app.use(VueQueryPlugin)
 app.mount('#app')

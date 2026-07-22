@@ -7,57 +7,35 @@ const phoneHref = '+573142858111'
 </script>
 
 <template>
-  <footer class="mt-auto border-t border-border bg-ink-deep">
+  <footer class="site-footer mt-auto border-t">
     <div class="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-      <p class="text-xs font-semibold uppercase tracking-widest text-brand-bright">
+      <p class="site-footer__eyebrow text-xs font-semibold uppercase tracking-widest">
         Producto de entrevista técnica hecha por:
       </p>
 
       <div class="mt-3 space-y-1.5">
-        <p class="text-lg font-bold text-surface sm:text-xl">
+        <p class="site-footer__title text-lg font-bold sm:text-xl">
           Mónica Sofía Restrepo León
         </p>
-        <p class="text-sm text-surface/85">
+        <p class="site-footer__role text-sm">
           Full-Stack Mobile Engineer — Flutter | React Native | JavaScript | Python
         </p>
       </div>
 
       <p
-        class="mt-4 flex flex-col gap-2 text-sm text-surface/75 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-0"
+        class="site-footer__meta mt-4 flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-0"
       >
-        <a
-          class="focus-visible:outline-brand-bright underline-offset-2 hover:text-brand-bright hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-          :href="`tel:${phoneHref}`"
-        >
-          {{ phoneDisplay }}
-        </a>
-        <span class="hidden px-2 text-surface/40 sm:inline" aria-hidden="true">|</span>
+        <a :href="`tel:${phoneHref}`">{{ phoneDisplay }}</a>
+        <span class="site-footer__sep hidden px-2 sm:inline" aria-hidden="true">|</span>
         <span>UTC-05:00</span>
-        <span class="hidden px-2 text-surface/40 sm:inline" aria-hidden="true">|</span>
-        <a
-          class="focus-visible:outline-brand-bright underline-offset-2 hover:text-brand-bright hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-          :href="`mailto:${email}`"
-        >
-          {{ email }}
-        </a>
-        <span class="hidden px-2 text-surface/40 sm:inline" aria-hidden="true">|</span>
-        <a
-          class="focus-visible:outline-brand-bright underline-offset-2 hover:text-brand-bright hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-          :href="githubUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <span class="site-footer__sep hidden px-2 sm:inline" aria-hidden="true">|</span>
+        <a :href="`mailto:${email}`">{{ email }}</a>
+        <span class="site-footer__sep hidden px-2 sm:inline" aria-hidden="true">|</span>
+        <a :href="githubUrl" target="_blank" rel="noopener noreferrer">
           GitHub: monicasofiarestrepo
         </a>
-        <span class="hidden px-2 text-surface/40 sm:inline" aria-hidden="true">|</span>
-        <a
-          class="focus-visible:outline-brand-bright underline-offset-2 hover:text-brand-bright hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-          :href="linkedinUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          LinkedIn
-        </a>
+        <span class="site-footer__sep hidden px-2 sm:inline" aria-hidden="true">|</span>
+        <a :href="linkedinUrl" target="_blank" rel="noopener noreferrer">LinkedIn</a>
       </p>
     </div>
   </footer>

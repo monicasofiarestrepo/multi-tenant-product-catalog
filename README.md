@@ -135,7 +135,6 @@ La prueba pide un catálogo multi-marca operativo; con el alcance actual eso se 
 
 - **Roles y permisos:** separar administradores (CRUD, inventario, precios) de visitantes en modo showroom, con autorización en API y UI.
 - **CI/CD:** el pipeline actual es deliberadamente simple para validar deploys en la cuenta de prueba; lo llevaría a un flujo con lint, tests y build en PR, deploy a producción solo tras merge y comprobaciones post-deploy.
-- **Modo oscuro:** tema claro/oscuro vía tokens CSS, para quien lo prefiera y como paso más de accesibilidad visual.
 - **Catálogo a escala:** paginación por cursor, búsqueda y filtros en la API (p. ej. GSI por categoría) en lugar de cargar todo el listado en el cliente.
 - **CDN:** caché en CloudFront para imágenes e invalidaciones más finas del SPA en cada release (assets con hash, no `index.html` entero).
 - **Medios enriquecidos:** galería con varias imágenes por producto y, donde tenga sentido, video (presign, transcodificación o streaming).
