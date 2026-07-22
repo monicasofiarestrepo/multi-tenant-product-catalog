@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import CatalogPagination from '@/components/CatalogPagination.vue'
 import ProductFilters from '@/components/ProductFilters.vue'
 import ProductFiltersSkeleton from '@/components/ProductFiltersSkeleton.vue'
 import ProductGrid from '@/components/ProductGrid.vue'
 import { useProductFilters } from '@/composables/useProductFilters'
+import { CATALOG_PAGE_SIZE, usePagination } from '@/composables/usePagination'
 import { useCatalogSync, useProductsQuery } from '@/composables/useCatalogQueries'
 
 const { tenantsQuery, tenantStore } = useCatalogSync()
@@ -12,23 +14,44 @@ const productsQuery = useProductsQuery(computed(() => tenantStore.selectedTenant
 
 const allProducts = computed(() => productsQuery.data.value ?? [])
 const { search, category, categories, filtered, reset } = useProductFilters(() => allProducts.value)
+const {
+  page,
+  totalPages,
+  paginated: pagedProducts,
+  visiblePages,
+  resetPage,
+} = usePagination(() => filtered.value, CATALOG_PAGE_SIZE)
+
+const catalogTop = ref<HTMLElement | null>(null)
 const manageMode = ref(false)
 const canManage = computed(() => Boolean(tenantStore.selectedTenantId) && !tenantStore.showingAll)
 const catalogLoading = computed(
   () => productsQuery.isLoading.value || tenantsQuery.isLoading.value,
+)
+const showPagination = computed(
+  () => !catalogLoading.value && filtered.value.length > CATALOG_PAGE_SIZE,
 )
 
 watch(
   () => tenantStore.selectedTenantId,
   () => {
     reset()
+    resetPage()
     manageMode.value = false
   },
 )
+
+watch([search, category], () => {
+  resetPage()
+})
+
+function onPageNavigate() {
+  catalogTop.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section ref="catalogTop" class="space-y-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-2xl font-semibold text-ink-deep">Catálogo</h2>
@@ -101,11 +124,22 @@ watch(
       </RouterLink>
     </div>
 
-    <ProductGrid
-      v-else
-      :products="filtered"
-      :loading="catalogLoading"
-      :manage-mode="manageMode"
-    />
+    <div
+      v-else-if="tenantStore.selectedTenantId || catalogLoading"
+      class="space-y-6"
+    >
+      <ProductGrid
+        :products="pagedProducts"
+        :loading="catalogLoading"
+        :manage-mode="manageMode"
+      />
+      <CatalogPagination
+        v-if="showPagination"
+        v-model:page="page"
+        :total-pages="totalPages"
+        :visible-pages="visiblePages"
+        @navigate="onPageNavigate"
+      />
+    </div>
   </section>
 </template>

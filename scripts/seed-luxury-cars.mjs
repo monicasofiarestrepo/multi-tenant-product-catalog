@@ -3,29 +3,23 @@
  * Seeds luxury cars + Bike House, Biky, Keybe; removes Acme products.
  * Usage: node scripts/seed-luxury-cars.mjs
  */
-import { BRANDS, CAR_IMAGES, PRODUCTS_BY_BRAND } from './luxury-cars-data.mjs'
+import { BRANDS, PRODUCTS_BY_BRAND } from './luxury-cars-data.mjs'
 import {
   BIKEHOUSE_PRODUCTS,
-  BIKE_IMAGES,
   BIKY_PRODUCTS,
   EXTRA_BRANDS,
   KEYBE_PRODUCTS,
-  SAAS_IMAGES,
 } from './extra-brands-data.mjs'
+import { resolveSeedImageUrl } from './product-images.mjs'
 
 const API_BASE = (
   process.env.API_BASE ??
   'https://ynnkakaim7.execute-api.us-east-2.amazonaws.com'
 ).replace(/\/$/, '')
 
-const REMOVE_TENANT_IDS = ['acme']
+const REMOVE_TENANT_IDS = ['acme', 'keybe-demo']
 
-const IMAGE_POOLS = {
-  default: CAR_IMAGES,
-  bikystore: BIKE_IMAGES,
-  biky: SAAS_IMAGES,
-  keybe: SAAS_IMAGES,
-}
+const FIX_IMAGES = process.env.FIX_IMAGES === '1'
 
 const PRODUCTS = {
   ...PRODUCTS_BY_BRAND,
@@ -36,15 +30,13 @@ const PRODUCTS = {
 
 const ALL_BRANDS = [...BRANDS, ...EXTRA_BRANDS]
 
-const cursors = Object.fromEntries(
-  Object.keys(IMAGE_POOLS).map((k) => [k, 0]),
-)
-
-function nextImageUrl(poolKey = 'default') {
-  const pool = IMAGE_POOLS[poolKey] ?? IMAGE_POOLS.default
-  const i = cursors[poolKey] ?? 0
-  cursors[poolKey] = i + 1
-  return pool[i % pool.length]
+function seedImageUrl(tenantId, item) {
+  return resolveSeedImageUrl({
+    tenantSlug: tenantId,
+    category: item.category,
+    name: item.name,
+    imageUrl: item.imageUrl,
+  })
 }
 
 async function api(path, init) {
@@ -103,12 +95,13 @@ async function downloadJpeg(url) {
   return buf
 }
 
-async function attachImage(tenantId, productId, poolKey = 'default') {
+async function attachImage(tenantId, productId, item) {
+  const sourceUrl = seedImageUrl(tenantId, item)
   let bytes
   let lastErr
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      bytes = await downloadJpeg(nextImageUrl(poolKey))
+      bytes = await downloadJpeg(sourceUrl)
       lastErr = null
       break
     } catch (e) {
@@ -147,7 +140,6 @@ async function seedBrand(brand) {
   console.log(`\n🏷  ${brand.name}`)
   await ensureTenant(brand)
   const tenantId = brand.slug
-  const poolKey = IMAGE_POOLS[tenantId] ? tenantId : 'default'
 
   const existing = await api(`/tenants/${tenantId}/products`)
   const byName = new Set(existing.map((p) => p.name))
@@ -156,13 +148,15 @@ async function seedBrand(brand) {
   for (const item of items) {
     if (byName.has(item.name)) {
       const found = existing.find((p) => p.name === item.name)
-      if (found?.imageUrls?.length) {
+      if (found?.imageUrls?.length && !FIX_IMAGES) {
         console.log(`  ↷ ya existe con imagen: ${item.name}`)
         continue
       }
       if (found) {
-        console.log(`  🖼  añade imagen a: ${item.name}`)
-        await attachImage(tenantId, found.id, poolKey)
+        console.log(
+          FIX_IMAGES ? `  🔄 actualiza imagen: ${item.name}` : `  🖼  añade imagen a: ${item.name}`,
+        )
+        await attachImage(tenantId, found.id, item)
         console.log(`  ✅ imagen OK`)
         continue
       }
@@ -178,7 +172,7 @@ async function seedBrand(brand) {
         category: item.category,
       }),
     })
-    await attachImage(tenantId, product.id, poolKey)
+    await attachImage(tenantId, product.id, item)
     console.log(`  ✅ creado + imagen`)
   }
 }
@@ -218,6 +212,7 @@ async function cleanupBikeHouseLegacy() {
 
 async function main() {
   console.log(`API: ${API_BASE}`)
+  if (FIX_IMAGES) console.log('Modo: FIX_IMAGES=1 (reemplaza imágenes de productos seed)')
   const tenants = await api('/tenants')
   console.log(`Tenants actuales: ${tenants.map((t) => t.id).join(', ') || '(ninguno)'}`)
 
