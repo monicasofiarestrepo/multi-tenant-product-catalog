@@ -11,7 +11,7 @@ import {
   useTenantsQuery,
 } from '@/composables/useCatalogQueries'
 import { useToast } from '@/composables/useToast'
-import { useTenantStore } from '@/stores/tenant'
+import { isAllTenants, useTenantStore } from '@/stores/tenant'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,10 +21,19 @@ const { push: toast } = useToast()
 
 const isEdit = computed(() => route.path.includes('/edit'))
 const productId = computed(() => route.params.id as string | undefined)
-const tenantId = computed(() => tenantStore.selectedTenantId ?? '')
 
 const tenantsQuery = useTenantsQuery()
 const productsQuery = useProductsQuery(computed(() => tenantStore.selectedTenantId))
+
+const tenantId = computed(() => {
+  const scope = tenantStore.selectedTenantId
+  if (scope && !isAllTenants(scope)) return scope
+  if (isEdit.value && productId.value) {
+    return productsQuery.data.value?.find((p) => p.id === productId.value)?.tenantId ?? ''
+  }
+  return ''
+})
+
 const existingQuery = useProductQuery(
   tenantId,
   computed(() => productId.value ?? ''),
@@ -32,10 +41,21 @@ const existingQuery = useProductQuery(
 )
 
 const brandName = computed(() => {
-  const id = tenantStore.selectedTenantId
+  const id = tenantId.value
   const t = (tenantsQuery.data.value ?? []).find((x) => x.id === id)
   return t?.name ?? 'esta marca'
 })
+
+watch(
+  [isEdit, () => tenantStore.showingAll],
+  ([edit, all]) => {
+    if (!edit && all) {
+      toast('Elige una marca para crear un producto', 'error')
+      router.replace('/')
+    }
+  },
+  { immediate: true },
+)
 
 const formTitle = computed(() =>
   isEdit.value ? `Editar producto de ${brandName.value}` : `Nuevo Producto de ${brandName.value}`,
@@ -62,8 +82,11 @@ const category = ref('')
 const categoryOpen = ref(false)
 const file = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
+const currentImageUrl = ref<string | null>(null)
 const fieldErrors = ref<Record<string, string>>({})
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const displayImageUrl = computed(() => previewUrl.value ?? currentImageUrl.value)
 
 watch(
   () => existingQuery.data.value,
@@ -73,18 +96,31 @@ watch(
     description.value = p.description
     priceInput.value = sanitizePrice(String(p.price))
     category.value = p.category
+    if (!file.value) {
+      currentImageUrl.value = p.imageUrls[0] ?? null
+    }
   },
   { immediate: true },
 )
 
 watch(file, (f) => {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  if (previewUrl.value?.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = f ? URL.createObjectURL(f) : null
 })
 
 onBeforeUnmount(() => {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  if (previewUrl.value?.startsWith('blob:')) URL.revokeObjectURL(previewUrl.value)
 })
+
+function resolveContentType(f: File): 'image/jpeg' | 'image/png' | 'image/webp' {
+  if (f.type === 'image/jpeg' || f.type === 'image/png' || f.type === 'image/webp') {
+    return f.type
+  }
+  const n = f.name.toLowerCase()
+  if (n.endsWith('.png')) return 'image/png'
+  if (n.endsWith('.webp')) return 'image/webp'
+  return 'image/jpeg'
+}
 
 function sanitizePrice(raw: string) {
   let s = raw.replace(/[^\d.]/g, '')
@@ -166,26 +202,33 @@ const saveMutation = useMutation({
     if (isEdit.value && productId.value) {
       let updated = await catalogApi.updateProduct(tenantId.value, productId.value, payload)
       if (file.value) {
+        const contentType = resolveContentType(file.value)
+        const uploadFile =
+          file.value.type === contentType
+            ? file.value
+            : new File([file.value], file.value.name, { type: contentType })
         const presign = await catalogApi.presignImage(
           tenantId.value,
           productId.value,
-          file.value.type as 'image/jpeg' | 'image/png' | 'image/webp',
+          contentType,
         )
-        await catalogApi.uploadToPresignedUrl(presign.uploadUrl, file.value)
+        await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
+        // Replace; API deletes old S3 keys
         updated = await catalogApi.updateProduct(tenantId.value, productId.value, {
-          imageUrls: [...updated.imageUrls, presign.publicUrl],
+          imageUrls: [presign.publicUrl],
         })
       }
       return updated
     }
-    const created = await catalogApi.createProduct(tenantId.value, payload)
     if (!file.value) throw new Error('IMAGE_REQUIRED')
-    const presign = await catalogApi.presignImage(
-      tenantId.value,
-      created.id,
-      file.value.type as 'image/jpeg' | 'image/png' | 'image/webp',
-    )
-    await catalogApi.uploadToPresignedUrl(presign.uploadUrl, file.value)
+    const created = await catalogApi.createProduct(tenantId.value, payload)
+    const contentType = resolveContentType(file.value)
+    const uploadFile =
+      file.value.type === contentType
+        ? file.value
+        : new File([file.value], file.value.name, { type: contentType })
+    const presign = await catalogApi.presignImage(tenantId.value, created.id, contentType)
+    await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
     return catalogApi.updateProduct(tenantId.value, created.id, {
       imageUrls: [presign.publicUrl],
     })
@@ -369,10 +412,14 @@ function onDrop(e: DragEvent) {
           @drop="onDrop"
         >
           <div
-            v-if="previewUrl"
+            v-if="displayImageUrl"
             class="relative h-28 w-28 overflow-hidden rounded-lg border border-border"
           >
-            <img :src="previewUrl" alt="Vista previa" class="h-full w-full object-cover" />
+            <img
+              :src="displayImageUrl"
+              :alt="file ? 'Vista previa de la nueva imagen' : 'Imagen actual del producto'"
+              class="h-full w-full object-cover"
+            />
           </div>
           <span
             v-else
@@ -394,10 +441,22 @@ function onDrop(e: DragEvent) {
           </span>
           <span class="space-y-1">
             <span class="block text-sm font-semibold text-ink">
-              {{ file ? file.name : 'Sube una imagen del producto' }}
+              {{
+                file
+                  ? file.name
+                  : currentImageUrl
+                    ? 'Cambiar imagen del producto'
+                    : 'Sube una imagen del producto'
+              }}
             </span>
             <span class="block text-xs text-muted">
-              Arrastra aquí o haz clic · JPEG, PNG o WebP
+              {{
+                file
+                  ? 'Se reemplazará la imagen actual al guardar'
+                  : currentImageUrl
+                    ? 'Imagen actual · arrastra o haz clic para reemplazar · JPEG, PNG o WebP'
+                    : 'Arrastra aquí o haz clic · JPEG, PNG o WebP'
+              }}
             </span>
           </span>
         </button>

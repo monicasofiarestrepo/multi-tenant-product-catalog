@@ -12,6 +12,7 @@ const productsQuery = useProductsQuery(computed(() => tenantStore.selectedTenant
 const allProducts = computed(() => productsQuery.data.value ?? [])
 const { search, category, categories, filtered, reset } = useProductFilters(() => allProducts.value)
 const manageMode = ref(false)
+const canManage = computed(() => Boolean(tenantStore.selectedTenantId) && !tenantStore.showingAll)
 
 watch(
   () => tenantStore.selectedTenantId,
@@ -27,9 +28,15 @@ watch(
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-2xl font-semibold text-ink-deep">Catálogo</h2>
-        <p class="text-sm text-muted">Productos por marca (multi-tenant)</p>
+        <p class="text-sm text-muted">
+          {{
+            tenantStore.showingAll
+              ? 'Productos de todas las marcas'
+              : 'Productos por marca (multi-tenant)'
+          }}
+        </p>
       </div>
-      <div v-if="tenantStore.selectedTenantId" class="flex flex-wrap items-center gap-2">
+      <div v-if="canManage" class="flex flex-wrap items-center gap-2">
         <button
           type="button"
           class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md border border-border bg-surface-elevated px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -45,6 +52,9 @@ watch(
           Agregar producto
         </RouterLink>
       </div>
+      <p v-else-if="tenantStore.showingAll" class="text-xs text-muted sm:max-w-xs sm:text-right">
+        Elige una marca para administrar o agregar productos.
+      </p>
     </div>
 
     <p v-if="tenantsQuery.isError.value" class="text-sm text-danger">
@@ -70,8 +80,15 @@ watch(
       "
       class="flex min-h-56 flex-col items-center justify-center gap-4 rounded-lg border border-border bg-surface-elevated px-6 py-12 text-center"
     >
-      <p class="text-base text-muted">Esta marca no cuenta con productos</p>
+      <p class="text-base text-muted">
+        {{
+          tenantStore.showingAll
+            ? 'Aún no hay productos en el catálogo'
+            : 'Esta marca no cuenta con productos'
+        }}
+      </p>
       <RouterLink
+        v-if="canManage"
         to="/products/new"
         class="focus-visible:outline-brand inline-flex items-center justify-center rounded-md bg-brand px-4 py-2 text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
       >

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import { catalogApi } from '@/api/client'
-import { useTenantStore } from '@/stores/tenant'
+import { ALL_TENANTS_ID, isAllTenants, useTenantStore } from '@/stores/tenant'
 
 export function useTenantsQuery() {
   return useQuery({
@@ -11,10 +11,26 @@ export function useTenantsQuery() {
 }
 
 export function useProductsQuery(tenantId: MaybeRefOrGetter<string | null>) {
+  const tenantsQuery = useTenantsQuery()
+
   return useQuery({
     queryKey: computed(() => ['products', toValue(tenantId)]),
-    queryFn: () => catalogApi.listProducts(toValue(tenantId)!),
-    enabled: computed(() => Boolean(toValue(tenantId))),
+    queryFn: async () => {
+      const id = toValue(tenantId)
+      if (!id) return []
+      if (isAllTenants(id)) {
+        const tenants = tenantsQuery.data.value ?? (await catalogApi.listTenants())
+        const batches = await Promise.all(tenants.map((t) => catalogApi.listProducts(t.id)))
+        return batches.flat().sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      }
+      return catalogApi.listProducts(id)
+    },
+    enabled: computed(() => {
+      const id = toValue(tenantId)
+      if (!id) return false
+      if (isAllTenants(id)) return (tenantsQuery.data.value?.length ?? 0) > 0
+      return true
+    }),
   })
 }
 
@@ -30,6 +46,7 @@ export function useProductQuery(
       () =>
         Boolean(toValue(enabled)) &&
         Boolean(toValue(tenantId)) &&
+        !isAllTenants(toValue(tenantId)) &&
         Boolean(toValue(productId)),
     ),
   })
@@ -43,10 +60,11 @@ export function useCatalogSync() {
   watch(
     () => tenantsQuery.data.value,
     (tenants) => {
-      if (!tenants?.length) return
+      if (!tenants) return
       const current = tenantStore.selectedTenantId
+      if (isAllTenants(current)) return
       const valid = current && tenants.some((t) => t.id === current)
-      if (!valid) tenantStore.selectTenant(tenants[0]!.id)
+      if (!valid) tenantStore.selectTenant(ALL_TENANTS_ID)
     },
     { immediate: true },
   )
@@ -68,4 +86,5 @@ export function invalidateProducts(
   tenantId: string,
 ) {
   queryClient.invalidateQueries({ queryKey: ['products', tenantId] })
+  queryClient.invalidateQueries({ queryKey: ['products', ALL_TENANTS_ID] })
 }

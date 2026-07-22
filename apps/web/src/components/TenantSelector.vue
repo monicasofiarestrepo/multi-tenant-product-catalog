@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import type { TenantDto } from '@catalog/shared'
-import { useTenantStore } from '@/stores/tenant'
+import { computed } from 'vue'
+import { ALL_TENANTS_ID, useTenantStore } from '@/stores/tenant'
 
-defineProps<{
+const props = defineProps<{
   tenants: TenantDto[]
   loading?: boolean
 }>()
 
 const tenantStore = useTenantStore()
+
+const sortedTenants = computed(() =>
+  [...props.tenants].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })),
+)
 </script>
 
 <template>
@@ -19,16 +24,11 @@ const tenantStore = useTenantStore()
       id="tenant-select"
       class="focus-visible:outline-brand min-w-48 max-w-full rounded-md border border-border bg-surface-elevated py-2 pl-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
       :disabled="loading"
-      :value="tenantStore.selectedTenantId ?? ''"
+      :value="tenantStore.selectedTenantId ?? ALL_TENANTS_ID"
       @change="tenantStore.selectTenant(($event.target as HTMLSelectElement).value)"
     >
-      <option v-if="tenants.length === 0" value="" disabled>
-        Sin marcas — crea una
-      </option>
-      <option v-else-if="!tenantStore.selectedTenantId" value="" disabled>
-        Selecciona marca
-      </option>
-      <option v-for="t in tenants" :key="t.id" :value="t.id">
+      <option :value="ALL_TENANTS_ID">Todas</option>
+      <option v-for="t in sortedTenants" :key="t.id" :value="t.id">
         {{ t.name }}
       </option>
     </select>

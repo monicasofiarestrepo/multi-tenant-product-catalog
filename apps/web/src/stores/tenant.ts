@@ -1,9 +1,19 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getTenantCookie, setTenantCookie } from '@/utils/cookie'
 
+/** Sentinel: show products from every brand */
+export const ALL_TENANTS_ID = '__all__'
+
+export function isAllTenants(id: string | null | undefined) {
+  return id === ALL_TENANTS_ID
+}
+
 export const useTenantStore = defineStore('tenant', () => {
-  const selectedTenantId = ref<string | null>(getTenantCookie())
+  const cookie = getTenantCookie()
+  const selectedTenantId = ref<string | null>(cookie ?? ALL_TENANTS_ID)
+
+  const showingAll = computed(() => isAllTenants(selectedTenantId.value))
 
   function selectTenant(id: string) {
     selectedTenantId.value = id
@@ -14,5 +24,5 @@ export const useTenantStore = defineStore('tenant', () => {
     if (id) setTenantCookie(id)
   })
 
-  return { selectedTenantId, selectTenant }
+  return { selectedTenantId, showingAll, selectTenant }
 })

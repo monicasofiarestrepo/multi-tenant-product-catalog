@@ -21,12 +21,12 @@ const confirmOpen = ref(false)
 
 const deleteMutation = useMutation({
   mutationFn: () => {
-    const tenantId = tenantStore.selectedTenantId
+    const tenantId = props.product.tenantId || tenantStore.selectedTenantId
     if (!tenantId) throw new Error('NO_TENANT')
     return catalogApi.deleteProduct(tenantId, props.product.id)
   },
   onSuccess: () => {
-    const tenantId = tenantStore.selectedTenantId
+    const tenantId = props.product.tenantId || tenantStore.selectedTenantId
     if (tenantId) invalidateProducts(queryClient, tenantId)
     toast('Producto eliminado')
   },

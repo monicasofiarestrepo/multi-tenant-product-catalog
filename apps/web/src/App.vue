@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import AddBrandDialog from '@/components/AddBrandDialog.vue'
+import SiteFooter from '@/components/SiteFooter.vue'
 import TenantSelector from '@/components/TenantSelector.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import { useCatalogSync } from '@/composables/useCatalogQueries'
@@ -11,7 +12,7 @@ const addBrandOpen = ref(false)
 </script>
 
 <template>
-  <div class="min-h-screen">
+  <div class="flex min-h-screen flex-col">
     <header class="border-b border-border bg-surface-elevated/80 backdrop-blur-md">
       <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -36,9 +37,10 @@ const addBrandOpen = ref(false)
       </div>
     </header>
     <AddBrandDialog v-model:open="addBrandOpen" />
-    <main class="mx-auto max-w-6xl px-4 py-8">
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
       <RouterView />
     </main>
+    <SiteFooter />
     <ToastContainer />
   </div>
 </template>

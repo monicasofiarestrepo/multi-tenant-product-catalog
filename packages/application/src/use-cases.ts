@@ -99,13 +99,21 @@ export class CatalogService {
     input: ProductUpdateInput,
   ): Promise<Product> {
     const existing = await this.getProduct(tenantId, productId)
+    const nextUrls = input.imageUrls ?? existing.imageUrls
     const updated: Product = {
       ...existing,
       ...input,
-      imageUrls: input.imageUrls ?? existing.imageUrls,
+      imageUrls: nextUrls,
       updatedAt: new Date().toISOString(),
     }
-    return this.products.update(updated)
+    const saved = await this.products.update(updated)
+    if (input.imageUrls) {
+      const kept = new Set(nextUrls)
+      const removed = existing.imageUrls.filter((u) => !kept.has(u))
+      const keys = this.images.keysFromUrls(removed)
+      await Promise.all(keys.map((k) => this.images.deleteByKey(k).catch(() => undefined)))
+    }
+    return saved
   }
 
   async deleteProduct(tenantId: string, productId: string): Promise<void> {

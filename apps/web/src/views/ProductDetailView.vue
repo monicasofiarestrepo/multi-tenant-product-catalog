@@ -12,7 +12,7 @@ import {
   useTenantsQuery,
 } from '@/composables/useCatalogQueries'
 import { useToast } from '@/composables/useToast'
-import { useTenantStore } from '@/stores/tenant'
+import { isAllTenants, useTenantStore } from '@/stores/tenant'
 
 type SearchHit = ProductDto & { tenantName: string }
 
@@ -23,15 +23,26 @@ const queryClient = useQueryClient()
 const { push: toast } = useToast()
 
 const productId = computed(() => route.params.id as string)
-const tenantId = computed(() => tenantStore.selectedTenantId ?? '')
 
 const tenantsQuery = useTenantsQuery()
 const productsQuery = useProductsQuery(computed(() => tenantStore.selectedTenantId))
-const productQuery = useProductQuery(tenantId, productId, computed(() => {
-  const list = productsQuery.data.value
-  if (!list) return false
-  return list.some((p) => p.id === productId.value)
-}))
+
+const tenantId = computed(() => {
+  const scope = tenantStore.selectedTenantId
+  if (scope && !isAllTenants(scope)) return scope
+  const hit = productsQuery.data.value?.find((p) => p.id === productId.value)
+  return hit?.tenantId ?? ''
+})
+
+const productQuery = useProductQuery(
+  tenantId,
+  productId,
+  computed(() => {
+    const list = productsQuery.data.value
+    if (!list) return false
+    return list.some((p) => p.id === productId.value)
+  }),
+)
 
 const confirmOpen = ref(false)
 const search = ref('')
