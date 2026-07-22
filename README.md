@@ -101,7 +101,7 @@ VITE_API_URL=<ApiUrl> npm run build -w @catalog/web
 cd infra && npx cdk deploy CatalogStack --require-approval never
 ```
 
-No subas credenciales al repositorio: perfil local, `aws login` o Secrets de GitHub Actions (nunca en el código).
+Nunca se suben credenciales al repositorio: perfil local, `aws login` o Secrets de GitHub Actions (nunca en el código).
 
 ---
 
