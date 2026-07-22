@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import ProductFilters from '@/components/ProductFilters.vue'
+import ProductFiltersSkeleton from '@/components/ProductFiltersSkeleton.vue'
 import ProductGrid from '@/components/ProductGrid.vue'
 import { useProductFilters } from '@/composables/useProductFilters'
 import { useCatalogSync, useProductsQuery } from '@/composables/useCatalogQueries'
@@ -13,6 +14,9 @@ const allProducts = computed(() => productsQuery.data.value ?? [])
 const { search, category, categories, filtered, reset } = useProductFilters(() => allProducts.value)
 const manageMode = ref(false)
 const canManage = computed(() => Boolean(tenantStore.selectedTenantId) && !tenantStore.showingAll)
+const catalogLoading = computed(
+  () => productsQuery.isLoading.value || tenantsQuery.isLoading.value,
+)
 
 watch(
   () => tenantStore.selectedTenantId,
@@ -64,8 +68,9 @@ watch(
       No se pudo cargar el catálogo. Intenta de nuevo.
     </p>
 
+    <ProductFiltersSkeleton v-if="catalogLoading && tenantStore.selectedTenantId" />
     <ProductFilters
-      v-if="tenantStore.selectedTenantId"
+      v-else-if="tenantStore.selectedTenantId"
       v-model:search="search"
       v-model:category="category"
       :categories="categories"
@@ -74,7 +79,7 @@ watch(
     <div
       v-if="
         tenantStore.selectedTenantId &&
-        !productsQuery.isLoading.value &&
+        !catalogLoading &&
         !productsQuery.isError.value &&
         allProducts.length === 0
       "
@@ -99,7 +104,7 @@ watch(
     <ProductGrid
       v-else
       :products="filtered"
-      :loading="productsQuery.isLoading.value || tenantsQuery.isLoading.value"
+      :loading="catalogLoading"
       :manage-mode="manageMode"
     />
   </section>

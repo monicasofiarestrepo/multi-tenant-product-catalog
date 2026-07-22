@@ -219,16 +219,18 @@ select:disabled {
   outline-offset: 2px;
 }
 
-/* Theme switch — sun / moon pill */
+/* Theme switch — sun / moon pill (h-10 to match header controls) */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 2.5rem;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: transparent;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .theme-toggle:focus-visible {
@@ -241,9 +243,10 @@ select:disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
-  width: 4.25rem;
-  height: 2.125rem;
-  padding: 0.2rem;
+  width: 4.5rem;
+  height: 100%;
+  min-height: 2.5rem;
+  padding: 0.25rem;
   border-radius: 999px;
   background: var(--color-toggle-track);
   box-shadow: var(--shadow-sm);
@@ -282,13 +285,13 @@ html.dark .theme-toggle__icon--moon {
 
 .theme-toggle__knob {
   position: absolute;
-  top: 0.2rem;
-  left: 0.2rem;
+  top: 0.25rem;
+  left: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.725rem;
-  height: 1.725rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: 999px;
   background: var(--color-toggle-knob);
   color: #fff;
@@ -298,11 +301,38 @@ html.dark .theme-toggle__icon--moon {
 }
 
 html.dark .theme-toggle__knob {
-  transform: translateX(2.1rem);
+  transform: translateX(2rem);
   color: var(--color-ink-near);
 }
 
 .theme-toggle__knob-icon {
   width: 0.95rem;
   height: 0.95rem;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 0%,
+    var(--color-surface-elevated) 45%,
+    var(--color-surface) 90%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-surface);
+  }
 }

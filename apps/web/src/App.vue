@@ -22,19 +22,19 @@ const addBrandOpen = ref(false)
             Multi-tenant Product Catalog
           </RouterLink>
         </div>
-        <div class="flex flex-wrap items-end gap-3 sm:items-center">
+        <div class="flex flex-wrap items-end gap-3">
           <TenantSelector
             :tenants="tenantsQuery.data.value ?? []"
             :loading="tenantsQuery.isLoading.value"
           />
           <button
             type="button"
-            class="focus-visible:outline-brand rounded-md border border-brand px-3 py-2 text-sm font-semibold text-brand focus-visible:outline-2 focus-visible:outline-offset-2"
+            class="header-control focus-visible:outline-brand inline-flex h-10 items-center rounded-md border border-brand px-3 text-sm font-semibold text-brand focus-visible:outline-2 focus-visible:outline-offset-2"
             @click="addBrandOpen = true"
           >
             + Nueva marca
           </button>
-          <ThemeToggle class="sm:ml-1" />
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -22,7 +22,7 @@ const sortedTenants = computed(() =>
     </label>
     <select
       id="tenant-select"
-      class="focus-visible:outline-brand min-w-48 max-w-full rounded-md border border-border bg-surface-elevated py-2 pl-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
+      class="header-control focus-visible:outline-brand h-10 min-w-48 max-w-full rounded-md border border-border bg-surface-elevated py-0 pl-3 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2"
       :disabled="loading"
       :value="tenantStore.selectedTenantId ?? ALL_TENANTS_ID"
       @change="tenantStore.selectTenant(($event.target as HTMLSelectElement).value)"

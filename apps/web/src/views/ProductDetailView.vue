@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import type { ProductDto, TenantDto } from '@catalog/shared'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import ProductDetailSkeleton from '@/components/ProductDetailSkeleton.vue'
 import { catalogApi } from '@/api/client'
 import {
   invalidateProducts,
@@ -143,6 +144,17 @@ function onConfirmDelete() {
   confirmOpen.value = false
   deleteMutation.mutate()
 }
+
+const detailLoading = computed(
+  () =>
+    productsQuery.isLoading.value ||
+    productQuery.isLoading.value ||
+    (!productsQuery.isLoading.value &&
+      !productsQuery.isError.value &&
+      currentIndex.value >= 0 &&
+      !productQuery.data.value &&
+      !productQuery.isError.value),
+)
 </script>
 
 <template>
@@ -214,10 +226,7 @@ function onConfirmDelete() {
       </div>
     </div>
 
-    <div
-      v-if="productsQuery.isLoading.value"
-      class="h-48 animate-pulse rounded-lg bg-surface-elevated"
-    />
+    <ProductDetailSkeleton v-if="detailLoading && !catalogEmpty && !productsQuery.isError.value" />
 
     <div
       v-else-if="catalogEmpty"
@@ -235,11 +244,6 @@ function onConfirmDelete() {
     <p v-else-if="productsQuery.isError.value" class="text-danger">
       No se pudo cargar el catálogo. Intenta de nuevo.
     </p>
-
-    <div
-      v-else-if="productQuery.isLoading.value"
-      class="h-48 animate-pulse rounded-lg bg-surface-elevated"
-    />
 
     <p v-else-if="productQuery.isError.value" class="text-danger">
       No se pudo cargar el producto.
