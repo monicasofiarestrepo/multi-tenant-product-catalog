@@ -70,12 +70,17 @@ Scripts útiles: `npm run build`, `npm run test` (Vitest en `apps/web`), `npm ru
 
 Hay un workflow en [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) pensado para iterar rápido en la cuenta de prueba:
 
-1. GitHub Actions asume un rol IAM vía **OIDC** (`role-to-assume` = `AWS_DEPLOY_ROLE_ARN`). No usa access keys en el workflow.
+1. GitHub Actions se autentica con **Secrets** `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (el rol OIDC `GitHubCatalogDeployRole` está en CDK, pero en esta cuenta `AssumeRoleWithWebIdentity` quedó denegado; las keys ya desplegaban bien).
 2. Lee `ApiUrl` del stack `CatalogStack`.
 3. Build del SPA con esa URL.
 4. `cdk deploy CatalogStack` en `us-east-2`.
 
-**Bootstrap una sola vez** (cuenta nueva o rol distinto):
+En GitHub → **Settings → Actions** necesitas:
+
+- **Variables:** `AWS_ACCOUNT_ID`
+- **Secrets:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+**(Opcional) OIDC** — si más adelante el trust del rol funciona, puedes cambiar el step de credenciales a `role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}` con `permissions.id-token: write`. Bootstrap del stack:
 
 ```bash
 export AWS_REGION=us-east-2 AWS_DEFAULT_REGION=us-east-2
@@ -83,7 +88,7 @@ cd infra
 npx cdk deploy GitHubOidcStack --require-approval never
 ```
 
-Copia el output `GitHubDeployRoleArn` y en GitHub → **Settings → Actions → Variables** define `AWS_ACCOUNT_ID` y `AWS_DEPLOY_ROLE_ARN`. El trust del rol queda acotado a este repo.
+Copia el output `GitHubDeployRoleArn` a la variable `AWS_DEPLOY_ROLE_ARN`.
 
 ### Manual
 
@@ -96,7 +101,7 @@ VITE_API_URL=<ApiUrl> npm run build -w @catalog/web
 cd infra && npx cdk deploy CatalogStack --require-approval never
 ```
 
-No subas credenciales al repositorio: perfil local, `aws login` u OIDC en CI.
+No subas credenciales al repositorio: perfil local, `aws login` o Secrets de GitHub Actions (nunca en el código).
 
 ---
 
