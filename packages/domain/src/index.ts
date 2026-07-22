@@ -37,6 +37,7 @@ export interface ImageUploadParams {
   tenantId: TenantId
   productId: ProductId
   contentType: string
+  contentLength: number
   fileName?: string
 }
 

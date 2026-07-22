@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
 export const tenantIdSchema = z.string().min(1).max(64)
+export const productIdSchema = z.string().min(1).max(64)
+
+/** Max image size for presigned uploads (5 MiB). */
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export const tenantSchema = z.object({
   id: z.string(),
@@ -56,6 +60,7 @@ export const productUpdateSchema = productCreateSchema.partial()
 
 export const imageUploadRequestSchema = z.object({
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  contentLength: z.number().int().positive().max(MAX_IMAGE_BYTES),
   fileName: z.string().max(200).optional(),
 })
 

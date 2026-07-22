@@ -70,7 +70,7 @@ Scripts útiles: `npm run build`, `npm run test` (Vitest en `apps/web`), `npm ru
 
 Hay un workflow en [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) pensado para iterar rápido en la cuenta de prueba:
 
-1. GitHub Actions asume un rol IAM vía **OIDC** (sin access keys en el repo).
+1. GitHub Actions asume un rol IAM vía **OIDC** (`role-to-assume` = `AWS_DEPLOY_ROLE_ARN`). No usa access keys en el workflow.
 2. Lee `ApiUrl` del stack `CatalogStack`.
 3. Build del SPA con esa URL.
 4. `cdk deploy CatalogStack` en `us-east-2`.
@@ -83,7 +83,7 @@ cd infra
 npx cdk deploy GitHubOidcStack --require-approval never
 ```
 
-Copia el output `GitHubDeployRoleArn` y en GitHub → **Settings → Actions → Variables** define `AWS_ACCOUNT_ID` y `AWS_DEPLOY_ROLE_ARN`. El trust del rol queda acotado a `main` de este repo.
+Copia el output `GitHubDeployRoleArn` y en GitHub → **Settings → Actions → Variables** define `AWS_ACCOUNT_ID` y `AWS_DEPLOY_ROLE_ARN`. El trust del rol queda acotado a este repo.
 
 ### Manual
 
@@ -142,7 +142,7 @@ flowchart LR
 ```
 
 **API REST**  
-Puse el tenant en la ruta (`/tenants/{tenantId}/products/...`) para que el alcance sea explícito en cada request y la API sea predecible sin documentación extra. Valido el body en backend con Zod, devuelvo errores con `code` y `message`, y CORS limitado al origen del SPA en CloudFront — el brief pide criterio propio y CORS bien resuelto.
+Puse el tenant en la ruta (`/tenants/{tenantId}/products/...`) para que el alcance sea explícito en cada request y la API sea predecible sin documentación extra. Valido path params y body con Zod, rechazo JSON malformado con 400, limito el tamaño de imagen en el presign (`contentLength` ≤ 5 MiB firmado en el PUT a S3), devuelvo errores con `code` y `message`, y CORS limitado al origen del SPA en CloudFront — el brief pide criterio propio y CORS bien resuelto.
 
 ```mermaid
 sequenceDiagram
@@ -197,7 +197,7 @@ flowchart LR
 ```
 
 **Frontend y estado**  
-Vue 3 + TypeScript, URL de API por `VITE_API_URL`. Pinia para la marca activa; TanStack Query para datos remotos y para que la lista se refresque sola tras crear/editar/borrar. Los filtros por nombre y categoría y la paginación (30 por página) los resolví en cliente: con el volumen actual del demo cumple el extra del brief sin GSI ni búsqueda server-side (la evolución a escala la dejo en “Qué mejoraría”). Tailwind con tokens en `tokens.css` para no dispersar estilos.
+Vue 3 + TypeScript, URL de API por `VITE_API_URL`. Pinia para la marca activa; TanStack Query para datos remotos y para que la lista se refresque sola tras crear/editar/borrar. El selector incluye **“Todas (solo lectura)”**: es una vista agregada del portafolio para comparar marcas sin mezclar escritura — el CRUD solo se habilita al elegir un tenant concreto, y cada request de mutación sigue yendo a `/tenants/{tenantId}/…` (el aislamiento de datos no cambia). Los filtros por nombre y categoría y la paginación (30 por página) los resolví en cliente: con el volumen actual del demo cumple el extra del brief sin GSI ni búsqueda server-side (la evolución a escala la dejo en “Qué mejoraría”). Tailwind con tokens en `tokens.css` para no dispersar estilos.
 
 ```mermaid
 flowchart TB
@@ -213,7 +213,7 @@ flowchart TB
 ```
 
 **Infra serverless (CDK)**  
-Todo el aprovisionamiento va en CDK TypeScript, como exige la prueba — nada crítico hecho a mano en consola. Un solo `CatalogStack` (HTTP API + Lambda, Dynamo on-demand, S3 imágenes + hosting SPA, CloudFront) me alcanza para el tamaño del ejercicio; al crecer separaría datos, API y web. El seed de marcas en deploy permite demostrar el cambio de catálogo sin hardcodear productos en el frontend.
+Todo el aprovisionamiento va en CDK TypeScript, como exige la prueba — nada crítico hecho a mano en consola. Un solo `CatalogStack` (HTTP API + Lambda, Dynamo on-demand, S3 imágenes + hosting SPA, CloudFront) me alcanza para el tamaño del ejercicio; al crecer separaría datos, API y web. El seed de marcas (con una imagen demo por producto vía URL pública) corre en el primer acceso a la API si la tabla está vacía, para demostrar el cambio de catálogo sin hardcodear productos en el frontend.
 
 ```mermaid
 flowchart TB
@@ -268,5 +268,5 @@ Pensando en algo comparable a un marketplace (descubrimiento, confianza y cierre
 - **Catálogo como fuente de verdad** para el agente: mismos SKUs, precios y stock que ve el usuario en el showroom, para evitar alucinaciones y mantener la precisión que la plataforma promete en operación comercial.
 - **Omnicanal** (web, WhatsApp, webchat): la ficha del producto y el detalle del catálogo alimentan el mismo flujo conversacional que ya usan marcas en retail y automotriz en BIKY.
 
-Eso conviertiría el ejercicio técnico en un pieza del embudo comercial —*convertir preguntas en ventas*— en vez de una vitrina aislada.
+Eso convertiría el ejercicio técnico en una pieza del embudo comercial —*convertir preguntas en ventas*— en vez de una vitrina aislada.
 

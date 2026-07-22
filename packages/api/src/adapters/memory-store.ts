@@ -56,7 +56,9 @@ export class MemoryImageStorage implements ImageStorage {
     tenantId: string
     productId: string
     contentType: string
+    contentLength: number
   }) {
+    void params.contentLength
     const ext = params.contentType.split('/')[1] ?? 'bin'
     const key = `tenants/${params.tenantId}/products/${params.productId}/${Date.now()}.${ext}`
     const publicUrl = `${this.base}/${key}`

@@ -5,7 +5,7 @@ import TenantSelector from './TenantSelector.vue'
 import { ALL_TENANTS_ID } from '@/stores/tenant'
 
 describe('TenantSelector', () => {
-  it('renders Todas first and tenants A-Z', () => {
+  it('renders Todas (solo lectura) first and tenants A-Z', () => {
     setActivePinia(createPinia())
     const wrapper = mount(TenantSelector, {
       props: {
@@ -17,8 +17,13 @@ describe('TenantSelector', () => {
       },
     })
     const options = wrapper.findAll('option')
-    expect(options[0]!.text()).toBe('Todas')
+    expect(options[0]!.text()).toBe('Todas (solo lectura)')
     expect(options[0]!.element.value).toBe(ALL_TENANTS_ID)
-    expect(options.map((o) => o.text())).toEqual(['Todas', 'Acme', 'Bike', 'Zebra'])
+    expect(options.map((o) => o.text())).toEqual([
+      'Todas (solo lectura)',
+      'Acme',
+      'Bike',
+      'Zebra',
+    ])
   })
 })

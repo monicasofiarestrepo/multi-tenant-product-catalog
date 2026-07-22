@@ -4,8 +4,10 @@ import { CatalogService, ApplicationError } from '@catalog/application'
 import {
   imageUploadRequestSchema,
   productCreateSchema,
+  productIdSchema,
   productUpdateSchema,
   tenantCreateSchema,
+  tenantIdSchema,
 } from '@catalog/shared'
 import {
   createDocClient,
@@ -43,6 +45,15 @@ function error(statusCode: number, code: string, message: string, details?: unkn
   return json(statusCode, { error: { code, message, details } })
 }
 
+function parseJsonBody(raw: string | undefined): unknown {
+  if (!raw) return {}
+  try {
+    return JSON.parse(raw)
+  } catch {
+    throw new ApplicationError('VALIDATION_ERROR', 'Invalid JSON body')
+  }
+}
+
 function service() {
   if (LOCAL || !TABLE) {
     return new CatalogService(
@@ -73,7 +84,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     const parts = pathParts(event.rawPath ?? event.requestContext.http.path)
     const method = event.requestContext.http.method
     const svc = service()
-    const body = event.body ? JSON.parse(event.body) : {}
+    const body = parseJsonBody(event.body)
 
     if (parts[0] === 'tenants' && parts.length === 1 && method === 'GET') {
       const tenants = await svc.listTenants()
@@ -87,7 +98,7 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     if (parts[0] === 'tenants' && parts[2] === 'products' && parts.length === 3) {
-      const tenantId = parts[1]!
+      const tenantId = tenantIdSchema.parse(parts[1])
       if (method === 'GET') {
         const products = await svc.listProducts(tenantId)
         return json(200, products)
@@ -100,8 +111,8 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     if (parts[0] === 'tenants' && parts[2] === 'products' && parts.length === 4) {
-      const tenantId = parts[1]!
-      const productId = parts[3]!
+      const tenantId = tenantIdSchema.parse(parts[1])
+      const productId = productIdSchema.parse(parts[3])
       if (method === 'GET') {
         const product = await svc.getProduct(tenantId, productId)
         return json(200, product)
@@ -124,10 +135,9 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
       parts.length === 5 &&
       method === 'POST'
     ) {
-      const tenantId = parts[1]!
-      const productId = parts[3]!
+      const tenantId = tenantIdSchema.parse(parts[1])
+      const productId = productIdSchema.parse(parts[3])
       const input = imageUploadRequestSchema.parse(body)
-      S3ImageStorage.validateContentType(input.contentType)
       const result = await svc.createImageUpload(tenantId, productId, input)
       return json(200, result)
     }

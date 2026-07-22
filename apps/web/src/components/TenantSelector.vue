@@ -25,9 +25,10 @@ const sortedTenants = computed(() =>
       class="select-control header-control min-w-48 max-w-full py-0"
       :disabled="loading"
       :value="tenantStore.selectedTenantId ?? ALL_TENANTS_ID"
+      :title="'Todas = vista de solo lectura; elige una marca para CRUD aislado'"
       @change="tenantStore.selectTenant(($event.target as HTMLSelectElement).value)"
     >
-      <option :value="ALL_TENANTS_ID">Todas</option>
+      <option :value="ALL_TENANTS_ID">Todas (solo lectura)</option>
       <option v-for="t in sortedTenants" :key="t.id" :value="t.id">
         {{ t.name }}
       </option>

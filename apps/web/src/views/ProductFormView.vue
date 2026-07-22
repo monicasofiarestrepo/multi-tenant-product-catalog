@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { productCreateSchema } from '@catalog/shared'
+import { MAX_IMAGE_BYTES, productCreateSchema } from '@catalog/shared'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -122,6 +122,27 @@ function resolveContentType(f: File): 'image/jpeg' | 'image/png' | 'image/webp' 
   return 'image/jpeg'
 }
 
+function assertImageFile(f: File) {
+  if (f.size > MAX_IMAGE_BYTES) {
+    throw new Error('IMAGE_TOO_LARGE')
+  }
+}
+
+async function uploadProductImage(tenant: string, id: string, f: File) {
+  assertImageFile(f)
+  const contentType = resolveContentType(f)
+  const uploadFile =
+    f.type === contentType ? f : new File([f], f.name, { type: contentType })
+  const presign = await catalogApi.presignImage(
+    tenant,
+    id,
+    contentType,
+    uploadFile.size,
+  )
+  await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
+  return presign.publicUrl
+}
+
 function sanitizePrice(raw: string) {
   let s = raw.replace(/[^\d.]/g, '')
   const dot = s.indexOf('.')
@@ -202,35 +223,23 @@ const saveMutation = useMutation({
     if (isEdit.value && productId.value) {
       let updated = await catalogApi.updateProduct(tenantId.value, productId.value, payload)
       if (file.value) {
-        const contentType = resolveContentType(file.value)
-        const uploadFile =
-          file.value.type === contentType
-            ? file.value
-            : new File([file.value], file.value.name, { type: contentType })
-        const presign = await catalogApi.presignImage(
+        const publicUrl = await uploadProductImage(
           tenantId.value,
           productId.value,
-          contentType,
+          file.value,
         )
-        await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
         // Replace; API deletes old S3 keys
         updated = await catalogApi.updateProduct(tenantId.value, productId.value, {
-          imageUrls: [presign.publicUrl],
+          imageUrls: [publicUrl],
         })
       }
       return updated
     }
     if (!file.value) throw new Error('IMAGE_REQUIRED')
     const created = await catalogApi.createProduct(tenantId.value, payload)
-    const contentType = resolveContentType(file.value)
-    const uploadFile =
-      file.value.type === contentType
-        ? file.value
-        : new File([file.value], file.value.name, { type: contentType })
-    const presign = await catalogApi.presignImage(tenantId.value, created.id, contentType)
-    await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
+    const publicUrl = await uploadProductImage(tenantId.value, created.id, file.value)
     return catalogApi.updateProduct(tenantId.value, created.id, {
-      imageUrls: [presign.publicUrl],
+      imageUrls: [publicUrl],
     })
   },
   onSuccess: (p) => {
@@ -248,6 +257,11 @@ const saveMutation = useMutation({
       toast('Agrega al menos una imagen', 'error')
       return
     }
+    if (e.message === 'IMAGE_TOO_LARGE') {
+      fieldErrors.value.image = 'La imagen no puede superar 5 MB'
+      toast('La imagen es demasiado grande (máx. 5 MB)', 'error')
+      return
+    }
     toast('No se pudo guardar, intenta de nuevo', 'error')
   },
 })
@@ -257,6 +271,12 @@ const isSaving = computed(() => saveMutation.isPending.value)
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const next = input.files?.[0] ?? null
+  if (next && next.size > MAX_IMAGE_BYTES) {
+    file.value = null
+    input.value = ''
+    fieldErrors.value.image = 'La imagen no puede superar 5 MB'
+    return
+  }
   file.value = next
   if (next) fieldErrors.value.image = ''
 }
@@ -282,6 +302,10 @@ function onDrop(e: DragEvent) {
   if (!dropped) return
   if (!/^image\/(jpeg|png|webp)$/.test(dropped.type)) {
     fieldErrors.value.image = 'Usa JPEG, PNG o WebP'
+    return
+  }
+  if (dropped.size > MAX_IMAGE_BYTES) {
+    fieldErrors.value.image = 'La imagen no puede superar 5 MB'
     return
   }
   file.value = dropped

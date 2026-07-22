@@ -58,8 +58,8 @@ function onPageNavigate() {
         <p class="text-sm text-muted">
           {{
             tenantStore.showingAll
-              ? 'Productos de todas las marcas'
-              : 'Productos por marca (multi-tenant)'
+              ? 'Vista agregada (solo lectura). Elige una marca para aislar el catálogo y administrar.'
+              : 'Productos de esta marca (catálogo aislado)'
           }}
         </p>
       </div>
@@ -80,7 +80,7 @@ function onPageNavigate() {
         </RouterLink>
       </div>
       <p v-else-if="tenantStore.showingAll" class="text-xs text-muted sm:max-w-xs sm:text-right">
-        Elige una marca para administrar o agregar productos.
+        “Todas” solo muestra; el CRUD queda por marca.
       </p>
     </div>
 

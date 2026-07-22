@@ -70,12 +70,17 @@ export const catalogApi = {
     request<void>(`/tenants/${tenantId}/products/${productId}`, {
       method: 'DELETE',
     }),
-  presignImage: (tenantId: string, productId: string, contentType: string) =>
+  presignImage: (
+    tenantId: string,
+    productId: string,
+    contentType: string,
+    contentLength: number,
+  ) =>
     request<ImageUploadResponse>(
       `/tenants/${tenantId}/products/${productId}/image-upload`,
       {
         method: 'POST',
-        body: JSON.stringify({ contentType }),
+        body: JSON.stringify({ contentType, contentLength }),
       },
     ),
   uploadToPresignedUrl: async (uploadUrl: string, file: File) => {

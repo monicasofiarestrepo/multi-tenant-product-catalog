@@ -133,6 +133,7 @@ export class CatalogService {
       tenantId,
       productId,
       contentType: input.contentType,
+      contentLength: input.contentLength,
       fileName: input.fileName,
     })
   }
