@@ -147,7 +147,7 @@ flowchart LR
 ```
 
 **API REST**  
-Puse el tenant en la ruta (`/tenants/{tenantId}/products/...`) para que el alcance sea explícito en cada request y la API sea predecible sin documentación extra. Valido path params y body con Zod, rechazo JSON malformado con 400, limito el tamaño de imagen en el presign (`contentLength` ≤ 5 MiB firmado en el PUT a S3), devuelvo errores con `code` y `message`, y CORS limitado al origen del SPA en CloudFront — el brief pide criterio propio y CORS bien resuelto.
+Puse el tenant en la ruta (`/tenants/{tenantId}/products/...`) para que el alcance sea explícito en cada request y la API sea predecible sin documentación extra. Valido path params y body con Zod, rechazo JSON malformado con 400, exijo `contentLength` ≤ 5 MiB en el presign (sin firmar `Content-Length` en el PUT — eso rompe la subida desde el navegador), devuelvo errores con `code` y `message`, y CORS limitado al origen del SPA en CloudFront — el brief pide criterio propio y CORS bien resuelto.
 
 ```mermaid
 sequenceDiagram

@@ -115,7 +115,11 @@ async function attachImage(tenantId, productId, item) {
     `/tenants/${tenantId}/products/${productId}/image-upload`,
     {
       method: 'POST',
-      body: JSON.stringify({ contentType: 'image/jpeg', fileName: 'product.jpg' }),
+      body: JSON.stringify({
+        contentType: 'image/jpeg',
+        contentLength: bytes.length,
+        fileName: 'product.jpg',
+      }),
     },
   )
 

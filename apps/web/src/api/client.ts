@@ -83,10 +83,14 @@ export const catalogApi = {
         body: JSON.stringify({ contentType, contentLength }),
       },
     ),
-  uploadToPresignedUrl: async (uploadUrl: string, file: File) => {
+  uploadToPresignedUrl: async (
+    uploadUrl: string,
+    file: Blob,
+    contentType: string,
+  ) => {
     const res = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': file.type },
+      headers: { 'Content-Type': contentType },
       body: file,
     })
     if (!res.ok) throw new ApiError('UPLOAD_FAILED', 'Image upload failed')

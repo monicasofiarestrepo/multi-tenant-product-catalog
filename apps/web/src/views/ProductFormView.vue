@@ -3,7 +3,7 @@ import { MAX_IMAGE_BYTES, productCreateSchema } from '@catalog/shared'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { catalogApi } from '@/api/client'
+import { catalogApi, ApiError } from '@/api/client'
 import {
   invalidateProducts,
   useProductQuery,
@@ -139,7 +139,11 @@ async function uploadProductImage(tenant: string, id: string, f: File) {
     contentType,
     uploadFile.size,
   )
-  await catalogApi.uploadToPresignedUrl(presign.uploadUrl, uploadFile)
+  await catalogApi.uploadToPresignedUrl(
+    presign.uploadUrl,
+    uploadFile,
+    contentType,
+  )
   return presign.publicUrl
 }
 
@@ -260,6 +264,10 @@ const saveMutation = useMutation({
     if (e.message === 'IMAGE_TOO_LARGE') {
       fieldErrors.value.image = 'La imagen no puede superar 5 MB'
       toast('La imagen es demasiado grande (máx. 5 MB)', 'error')
+      return
+    }
+    if (e instanceof ApiError) {
+      toast(e.message || 'No se pudo guardar, intenta de nuevo', 'error')
       return
     }
     toast('No se pudo guardar, intenta de nuevo', 'error')

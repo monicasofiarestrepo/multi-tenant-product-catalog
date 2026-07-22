@@ -34,7 +34,6 @@ export class S3ImageStorage implements ImageStorage {
       Bucket: this.bucket,
       Key: key,
       ContentType: params.contentType,
-      ContentLength: params.contentLength,
     })
     const uploadUrl = await getSignedUrl(this.s3, cmd, {
       expiresIn: 900,
