@@ -258,6 +258,7 @@ Pensando en algo comparable a un marketplace (descubrimiento, confianza y cierre
 - **Chat con asesores humanos** y handoff cuando la IA no alcanza; historial unificado por cliente.
 - **Tracking de envíos** (integración con transportadoras, estados y notificaciones).
 - **Búsqueda avanzada**, comparador, lista de deseos, carrito, alertas de precio y analítica de conversión por producto y canal.
+- **Resiliencia y picos de tráfico:** hoy el backend es serverless (Lambda + API Gateway), que escala solo en rangos razonables; con tráfico sostenido o picos agresivos añadiría **gestión de carga y alta disponibilidad** — por ejemplo **Kubernetes (EKS)** o **ECS/Fargate** detrás de un **ALB** con autoscaling, health checks y despliegues graduales (rolling/canary), más **rate limiting**, colas (**SQS**) para trabajo asíncrono y **caché** (ElastiCache/API Gateway throttling) para no tumbar el catálogo ni la API en campañas o Black Friday.
 
 ### Alineación con BIKY (catálogo conversacional + IA)
 
