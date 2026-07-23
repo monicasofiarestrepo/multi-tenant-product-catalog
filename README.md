@@ -8,6 +8,7 @@ Catálogo de productos multi-marca: Vue 3 contra una API serverless real en AWS.
 |--|--|
 | Frontend | https://daq2o95hh6swe.cloudfront.net |
 | API | https://ynnkakaim7.execute-api.us-east-2.amazonaws.com |
+| Video demo | https://drive.google.com/file/d/1nUzAZhWI4P4Vkow6OSJBh6H3iYW0zbua/view?usp=sharing |
 
 Región **us-east-2** (limitación de la cuenta de prueba; CloudFront es global).
 
