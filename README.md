@@ -1,6 +1,6 @@
 # Multi-tenant product catalog
 
-Catálogo de productos multi-marca para la prueba técnica de Biky: Vue 3 contra una API serverless real en AWS (sin mocks en producción).
+Catálogo de productos multi-marca: Vue 3 contra una API serverless real en AWS.
 
 ## URLs
 
